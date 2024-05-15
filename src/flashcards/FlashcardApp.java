@@ -152,6 +152,11 @@ public class FlashcardApp extends JFrame {
         System.out.println(username);
         System.out.println(password);
         
+        if (username.equals("") || password.equals("")) {
+        	JOptionPane.showMessageDialog(this, "Please enter a username and a password", "Signup Error", JOptionPane.ERROR_MESSAGE);	
+        	return;
+        }
+        
         if (!users.containsKey(username)) {
             // Create new user and add to the map
             User newUser = new User(username, password);
@@ -160,8 +165,6 @@ public class FlashcardApp extends JFrame {
             
             currentUser = newUser;
             switchToMainPanel(loginPanel);
-        } else if (username == "" || password == "") {
-        	JOptionPane.showMessageDialog(this, "Please enter a username and a password", "Signup Error", JOptionPane.ERROR_MESSAGE);	
         } else {
             // Username already exists, show error message
             JOptionPane.showMessageDialog(this, "Username already taken", "Signup Error", JOptionPane.ERROR_MESSAGE);
