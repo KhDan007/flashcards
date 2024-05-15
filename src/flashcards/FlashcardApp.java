@@ -25,6 +25,13 @@ public class FlashcardApp extends JFrame {
     private JList<Deck> deckList;
     private DefaultListModel<Deck> deckListModel;
     
+    // UI Component for Flashcard Creation
+    private JPanel flashcardPanel;
+    private JLabel questionLabel, answerLabel;
+    private JTextField questionField, answerField;
+    private JComboBox<String> deckComboBox; // For deck selection
+    private JButton saveFlashcardButton;
+    
     public FlashcardApp() {
         // Load user data from file
         loadUserData();
@@ -41,6 +48,8 @@ public class FlashcardApp extends JFrame {
     private void initUI() {
     	initLoginPanel();
     	
+        initFlashcardPanel();
+        
     	this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     }
     
@@ -87,11 +96,37 @@ public class FlashcardApp extends JFrame {
         });
     }
 
+    private void showFlashcardCreationScreen() {
+        // Initialize flashcardPanel if not already done
+        if (flashcardPanel == null) {
+            initFlashcardPanel();
+        }
+
+        // Remove the main panel (or the currently active panel)
+        getContentPane().remove(mainPanel); // Assuming you're currently on mainPanel
+
+        // Add the flashcard panel
+        getContentPane().add(flashcardPanel, BorderLayout.CENTER);
+        
+        // Update UI
+        revalidate();
+        repaint();
+    }
+    
+    // Flashcard Creation Screen
+    private void initFlashcardPanel() {
+        flashcardPanel = new JPanel();
+        flashcardPanel.setLayout(new GridBagLayout());
+        
+        
+        // ... (Add labels, text fields, deckComboBox, and saveFlashcardButton to flashcardPanel)
+    }
+    
     private void handleLogin() {
         String username = usernameField.getText();
         String password = new String(passwordField.getPassword());
-
-        if (username == "" || password == "") {
+        
+        if (username.equals("") || password.equals("")) {
         	JOptionPane.showMessageDialog(this, "Please enter a username and a password", "Login Error", JOptionPane.ERROR_MESSAGE);	
         	return;
         }
@@ -100,7 +135,8 @@ public class FlashcardApp extends JFrame {
         if (user != null && user.getPasswordHash().equals(user.hashPassword(password))) {
             // Successful login
             currentUser = user;
-            System.out.println(users);
+            
+            initMainPanel();
             switchToMainPanel(loginPanel);
             // ... (Transition to the main flashcard interface)
         } else {
@@ -122,6 +158,7 @@ public class FlashcardApp extends JFrame {
             users.put(username, newUser);
             saveUserData();  // Save updated user data
             
+            currentUser = newUser;
             switchToMainPanel(loginPanel);
         } else if (username == "" || password == "") {
         	JOptionPane.showMessageDialog(this, "Please enter a username and a password", "Signup Error", JOptionPane.ERROR_MESSAGE);	
@@ -216,21 +253,49 @@ public class FlashcardApp extends JFrame {
         getContentPane().add(loginPanel, BorderLayout.CENTER);
     }
         private void initMainPanel() {
-            mainPanel = new JPanel();
-            mainPanel.setLayout(new BorderLayout());
-            mainPanel.setBackground(new Color(121, 199, 255));
+        	mainPanel = new JPanel();
+            mainPanel.setLayout(new BorderLayout(20, 20)); // Add spacing to BorderLayout
+            mainPanel.setBackground(new Color(245, 245, 245)); // Soft gray background
 
-            // Heading
+            // Heading with Icon (Replace "path/to/icon.png" with your actual icon path)
+            JPanel headingPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 10));
+            headingPanel.setBackground(mainPanel.getBackground());
             welcomeLabel = new JLabel("Welcome, " + (currentUser != null ? currentUser.getUsername() : ""));
-            welcomeLabel.setFont(new Font("Lucida Console", Font.BOLD, 28));
-            welcomeLabel.setHorizontalAlignment(JLabel.CENTER); 
-            mainPanel.add(welcomeLabel, BorderLayout.NORTH);
+            welcomeLabel.setFont(new Font("Open Sans", Font.BOLD, 28));
 
-            // Deck List
-            deckListModel = new DefaultListModel<>(); // To hold the decks
+            // Add Icon (replace the path with your actual icon file)
+            try {
+                ImageIcon icon = new ImageIcon("src/icon.png"); // Assuming icon is in "src" folder
+                Image scaledImage = icon.getImage().getScaledInstance(32, 32, Image.SCALE_SMOOTH);
+                JLabel iconLabel = new JLabel(new ImageIcon(scaledImage));
+                headingPanel.add(iconLabel);
+            } catch (Exception e) {
+                System.err.println("Error loading icon: " + e.getMessage()); // Print error message
+                // If loading fails, proceed without the icon
+            }
+
+            headingPanel.add(welcomeLabel);
+            mainPanel.add(headingPanel, BorderLayout.NORTH);
+
+            // Deck List/Grid (using GridBagLayout)
+            JPanel deckPanel = new JPanel(new GridBagLayout());
+            deckPanel.setBackground(mainPanel.getBackground());
+            GridBagConstraints gbc = new GridBagConstraints();
+            gbc.insets = new Insets(10, 10, 10, 10);
+            gbc.fill = GridBagConstraints.BOTH;
+            gbc.weightx = 1.0;
+            gbc.weighty = 1.0;
+            int gridy = 0;
+
+            // Add decks to the list model and create deck cards
+            deckListModel = new DefaultListModel<>();
+            for (Deck deck : currentUser.getDecks()) {
+                deckListModel.addElement(deck);
+                createDeckCard(deckPanel, deck, gbc, gridy++);
+            }
             deckList = new JList<>(deckListModel);
             deckList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-            JScrollPane scrollPane = new JScrollPane(deckList); // Add scrollbar if needed
+            JScrollPane scrollPane = new JScrollPane(deckList);
             mainPanel.add(scrollPane, BorderLayout.CENTER);
 
             // Bottom Panel with Buttons
@@ -239,7 +304,8 @@ public class FlashcardApp extends JFrame {
             logoutButton = new JButton("Log Out");
 
             createFlashcardButton.addActionListener(e -> {
-                // ... (logic to show the flashcard creation screen)
+            	System.out.println(1);
+                showFlashcardCreationScreen(); // Show flashcard creation screen
             });
             
             logoutButton.addActionListener(e -> {
@@ -257,7 +323,32 @@ public class FlashcardApp extends JFrame {
             bottomPanel.add(logoutButton); // Add logout button
             mainPanel.add(bottomPanel, BorderLayout.SOUTH);
         
-    }
+        }
+        
+        private void createDeckCard(JPanel deckPanel, Deck deck, GridBagConstraints gbc, int gridy) {
+            JPanel deckCard = new JPanel(new BorderLayout());
+            deckCard.setBackground(Color.WHITE);
+            deckCard.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1, true));
+
+            JLabel deckNameLabel = new JLabel(deck.getName());
+            deckNameLabel.setFont(new Font("Open Sans", Font.BOLD, 18));
+            deckNameLabel.setHorizontalAlignment(JLabel.CENTER); // Center horizontally
+            deckCard.add(deckNameLabel, BorderLayout.CENTER);
+
+            // (Optional) Add deck image, progress bar here
+
+            deckCard.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    // Handle deck selection logic here (e.g., open the study screen)
+                    // You can get the selected deck using:
+                    // Deck selectedDeck = deckList.getSelectedValue();
+                }
+            });
+
+            gbc.gridy = gridy;
+            deckPanel.add(deckCard, gbc);
+        }
 
     
     public static void main(String[] args) {
